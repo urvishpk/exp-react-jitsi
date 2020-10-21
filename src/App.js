@@ -42,6 +42,7 @@ function App() {
     const { JitsiMeetJS, config } = initializeJitsiMeetJS();
     initializeConnection(JitsiMeetJS, config);
     return;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   function initializeJitsiMeetJS() {
     const { JitsiMeetJS, config } = window;
