@@ -62,7 +62,6 @@ function App() {
     setupConnectionListeners(JitsiMeetJS);
     addMsg("Connecting to video conference server...");
     connection.current.connect();
-    setShowDesktop(false);
   }
   function setupConnectionListeners(JitsiMeetJS) {
     connection.current.addEventListener(
@@ -86,15 +85,6 @@ function App() {
     setMsgs(["Connection successful"]);
     initConferenceRoom();
   }
-  function handleConnectionFailure() {
-    setMsgs(["Connection failure"]);
-  }
-  function handleConnectionDisconnected() {
-    addMsg("Disconnected");
-  }
-  function handleDeviceListChanged(devices) {
-    setDeviceList(devices);
-  }
   function initConferenceRoom() {
     const { JitsiMeetJS } = window;
     setupJitsiConference();
@@ -113,6 +103,49 @@ function App() {
       ROOM_NAME,
       confOptions
     );
+  }
+  function setupConferenceHandlers(JitsiMeetJS) {
+    conferenceRoom.current.on(
+      JitsiMeetJS.events.conference.CONFERENCE_JOINED,
+      handleConferenceJoined
+    );
+    conferenceRoom.current.on(
+      JitsiMeetJS.events.conference.USER_JOINED,
+      handleUserJoined
+    );
+    conferenceRoom.current.on(
+      JitsiMeetJS.events.conference.USER_LEFT,
+      handleUserLeft
+    );
+  }
+  function handleConferenceJoined() {
+    if (!conferenceRoom.current || !conferenceRoom.current.isJoined) return;
+    if (initialJoin.current) {
+      // This is the first time setting up tracks hence add all tracks to remote
+      setMsgs([`Joined conference room ${ROOM_NAME}`]);
+      initialJoin.current = false;
+    }
+    setShowDesktop(false);
+  }
+  function handleUserJoined(participantId) {
+    console.log(`User joined ${participantId}`);
+    setRemoteTracks((prevRemoteTracks) => {
+      return {
+        ...prevRemoteTracks,
+        [participantId]: {
+          audio: null,
+          video: null,
+          displayName: conferenceRoom.current.getParticipantById(participantId)
+            ._displayName,
+        },
+      };
+    });
+  }
+  function handleUserLeft(participantId) {
+    setRemoteTracks((prevRemoteTracks) => {
+      delete prevRemoteTracks[participantId];
+      return { ...prevRemoteTracks };
+    });
   }
   function setupUserAndTrackHandlers(JitsiMeetJS) {
     conferenceRoom.current.on(
@@ -249,136 +282,40 @@ function App() {
       }
     );
   }
-  function setupConferenceHandlers(JitsiMeetJS) {
-    conferenceRoom.current.on(
-      JitsiMeetJS.events.conference.CONFERENCE_JOINED,
-      handleConferenceJoined
-    );
-    conferenceRoom.current.on(
-      JitsiMeetJS.events.conference.USER_JOINED,
-      handleUserJoined
-    );
-    conferenceRoom.current.on(
-      JitsiMeetJS.events.conference.USER_LEFT,
-      handleUserLeft
-    );
+  function handleConnectionFailure() {
+    setMsgs(["Connection failure"]);
   }
-  function handleConferenceJoined() {
-    if (!conferenceRoom.current || !conferenceRoom.current.isJoined) return;
-    if (initialJoin.current) {
-      // This is the first time setting up tracks hence add all tracks to remote
-      setMsgs([`Joined conference room ${ROOM_NAME}`]);
-      initialJoin.current = false;
-    }
-    // for (let i = 0; i < localTracks.length; i++) {
-    //   let oldTrack = null;
-    //   if (localTracks[i].getType() === "video") {
-    //     if (localTracks[i].isMuted()) {
-    //       localTracks[i].unmute();
-    //     }
-    //     oldTrack = conferenceRoom.current.getLocalVideoTrack();
-    //   } else {
-    //     oldTrack = conferenceRoom.current.getLocalAudioTrack();
-    //   }
-    //   if (oldTrack) {
-    //     // Replace old track with new track in the conference room and dispose old track
-    //     conferenceRoom.current
-    //       .replaceTrack(oldTrack, localTracks[i])
-    //       .then(() => oldTrack.dispose());
-    //   } else {
-    //     conferenceRoom.current.addTrack(localTracks[i]);
-    //   }
-    // }
+  function handleConnectionDisconnected() {
+    addMsg("Disconnected");
   }
-  function handleUserJoined(participantId) {
-    console.log(`User joined ${participantId}`);
-    setRemoteTracks((prevRemoteTracks) => {
-      return {
-        ...prevRemoteTracks,
-        [participantId]: {
-          audio: null,
-          video: null,
-          displayName: conferenceRoom.current.getParticipantById(participantId)
-            ._displayName,
-        },
-      };
-    });
-  }
-  function handleUserLeft(participantId) {
-    setRemoteTracks((prevRemoteTracks) => {
-      delete prevRemoteTracks[participantId];
-      return { ...prevRemoteTracks };
-    });
+  function handleDeviceListChanged(devices) {
+    setDeviceList(devices);
   }
 
   useEffect(() => {
-    async function presentScreen() {
-      if (showDesktop === null) return;
-      const { JitsiMeetJS } = window;
-      setPermissionDenied(null);
-      const devices = showDesktop ? ["audio", "desktop"] : ["audio", "video"];
-      try {
-        const tracks = await JitsiMeetJS.createLocalTracks({ devices });
-        setPermissionDenied(false);
-        setLocalTracks(tracks);
-      } catch (error) {
-        setPermissionDenied(true);
-        setError(
-          "Permission was either denied for accessing audio/video devices or devices were not detected"
-        );
-        if (!conferenceRoom.current) return;
-        const videoTrack = conferenceRoom.current.getLocalVideoTrack();
-        removeTrack(videoTrack);
-        const audioTrack = conferenceRoom.current.getLocalAudioTrack();
-        removeTrack(audioTrack);
+    if (!conferenceRoom.current) return;
+    if (localTracks.length === 0) return;
+    const oldVideoTrack = conferenceRoom.current.getLocalVideoTrack();
+    for (let i = 0; i < localTracks.length; i++) {
+      console.log("[TYPE]", localTracks[i].getType());
+      if (localTracks[i].getType() === "video") {
+        localTracks[i].attach(videoElement.current);
+        if (oldVideoTrack) {
+          conferenceRoom.current
+            .replaceTrack(oldVideoTrack, localTracks[i])
+            .then(() => {
+              oldVideoTrack.dispose();
+              setShowDesktop(localTracks[i].videoType === "desktop");
+            });
+        } else {
+          conferenceRoom.current.addTrack(localTracks[i]);
+        }
+      } else {
+        if (!conferenceRoom.current.getLocalAudioTrack())
+          conferenceRoom.current.addTrack(localTracks[i]);
       }
     }
-    function removeTrack(track) {
-      if (!track) return;
-      conferenceRoom.current.removeTrack(track);
-      track.dispose();
-    }
-    presentScreen();
-  }, [showDesktop]);
-
-  useEffect(() => {
-    if (localTracks.length === 0) return;
-    if (!conferenceRoom.current) return;
-    conferenceRoom.current.addTrack(localTracks[0]);
-    conferenceRoom.current.addTrack(localTracks[1]);
-    console.log("[CONF LOCAL TRACKS]", conferenceRoom.current.getLocalTracks());
-
-    // const { JitsiMeetJS } = window;
-    // for (let i = 0; i < localTracks.length; i++) {
-    //   localTracks[i].addEventListener(
-    //     JitsiMeetJS.events.track.TRACK_AUDIO_LEVEL_CHANGED,
-    //     (audioLevel) => console.log(`Audio Level local: ${audioLevel}`)
-    //   );
-    //   localTracks[i].addEventListener(
-    //     JitsiMeetJS.events.track.TRACK_MUTE_CHANGED,
-    //     () => console.log("Local track muted/unmuted")
-    //   );
-    //   localTracks[i].addEventListener(
-    //     JitsiMeetJS.events.track.LOCAL_TRACK_STOPPED,
-    //     () => console.log("Local track stopped")
-    //   );
-    //   localTracks[i].addEventListener(
-    //     JitsiMeetJS.events.track.TRACK_AUDIO_OUTPUT_CHANGED,
-    //     (deviceId) =>
-    //       console.log(`Track audio output device was changed to ${deviceId}`)
-    //   );
-    //   if (localTracks[i].getType() !== "audio") {
-    //     localTracks[i].attach(videoElement.current);
-    //   }
-    // }
-    console.log("[CONF LOCAL TRACKS]", conferenceRoom.current.getLocalTracks());
   }, [localTracks]);
-
-  useEffect(() => {
-    if (deviceList.length !== 0) {
-      console.log(`Device list changed. Detected ${deviceList.length} devices`);
-    }
-  }, [deviceList]);
 
   useEffect(() => {
     let remoteTracks = {};
@@ -428,8 +365,40 @@ function App() {
   }, [remoteVideoTracks, remoteAudioTracks]);
 
   useEffect(() => {
-    console.log(remoteTracks);
-  }, [remoteTracks]);
+    async function presentScreen() {
+      const { JitsiMeetJS } = window;
+      setPermissionDenied(null);
+      const devices = showDesktop ? ["audio", "desktop"] : ["audio", "video"];
+      try {
+        const tracks = await JitsiMeetJS.createLocalTracks({ devices });
+        setPermissionDenied(false);
+        setLocalTracks(tracks);
+      } catch (error) {
+        setPermissionDenied(true);
+        setError(
+          "Permission was either denied for accessing audio/video devices or devices were not detected"
+        );
+        if (!conferenceRoom.current) return;
+        const videoTrack = conferenceRoom.current.getLocalVideoTrack();
+        removeTrack(videoTrack);
+        const audioTrack = conferenceRoom.current.getLocalAudioTrack();
+        removeTrack(audioTrack);
+      }
+    }
+    function removeTrack(track) {
+      if (!track) return;
+      conferenceRoom.current.removeTrack(track);
+      track.dispose();
+    }
+    if (showDesktop === null) return;
+    presentScreen();
+  }, [showDesktop]);
+
+  useEffect(() => {
+    if (deviceList.length !== 0) {
+      console.log(`Device list changed. Detected ${deviceList.length} devices`);
+    }
+  }, [deviceList]);
 
   // User interactions
   function toggleDesktopSharing() {
