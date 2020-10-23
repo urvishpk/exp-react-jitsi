@@ -93,7 +93,7 @@ function App() {
     setupErrorHandlers(JitsiMeetJS);
     setMsgs([`Joining conference room ${ROOM_NAME}`]);
     conferenceRoom.current.setDisplayName(DISPLAY_NAME);
-    conferenceRoom.current.setStartMutedPolicy({ audio: true, video: false });
+    // conferenceRoom.current.setStartMutedPolicy({ audio: true, video: false });
     conferenceRoom.current.join();
   }
   function setupJitsiConference() {
@@ -310,6 +310,8 @@ function App() {
               setShowDesktop(localTracks[i].videoType === "desktop");
             });
         } else {
+          localTracks[i].mute();
+          setMuteAudio(true);
           conferenceRoom.current.addTrack(localTracks[i]);
         }
       } else {
