@@ -14,7 +14,7 @@ function App() {
   const [msgs, setMsgs] = useState([]);
   const [localTracks, setLocalTracks] = useState([]);
   const [remoteTracks, setRemoteTracks] = useState([]);
-  const [members, setMembers] = useState([]);
+  const [members, setMembers] = useState({});
 
   // eslint-disable-next-line no-unused-vars
   const [showDesktop, setShowDesktop] = useState(null);
@@ -141,37 +141,32 @@ function App() {
   function handleUserJoined(memberId) {
     console.log(memberId);
     const member = {
-      id: memberId,
       audio: null,
       video: null,
       displayName: conferenceRoom.current.getParticipantById(memberId)
         ._displayName,
     };
-    setMembers((prev) => [...prev, member]);
+    setMembers((prev) => ({ ...prev, [memberId]: member }));
   }
   function handleUserLeft(memberId) {
-    const updatedMembers = members.filter((member) => member.id !== memberId);
-    setMembers(updatedMembers);
+    setMembers((prev) => {
+      delete prev[memberId];
+      return { ...prev };
+    });
   }
-
   function handleTrackAdded(track) {
-    console.log(track);
     if (track.isLocal()) return;
     setRemoteTracks((prev) => [...prev, track]);
   }
   useEffect(() => {
-    const updatedMembers = [...members];
-    console.log("[EFFECT]", updatedMembers);
-    for (let i = 0; i < updatedMembers.length; i++) {
-      for (let j = 0; j < remoteTracks.length; j++) {
-        if (updatedMembers[i].id === remoteTracks[j].getParticipantId()) {
-          if (remoteTracks[j].getType() === "audio")
-            updatedMembers[i].audio = remoteTracks[j];
-          else updatedMembers[i].video = remoteTracks[j];
-        }
-      }
+    const currentMembers = members;
+    for (let i = 0; i < remoteTracks.length; i++) {
+      const memberId = remoteTracks[i].getParticipantId();
+      if (remoteTracks[i].getType() === "audio")
+        currentMembers[memberId].audio = remoteTracks[i];
+      else currentMembers[memberId].video = remoteTracks[i];
     }
-    setMembers(updatedMembers);
+    setMembers(currentMembers);
   }, [remoteTracks]);
 
   function setupErrorHandlers(JitsiMeetJS) {
@@ -327,9 +322,9 @@ function App() {
             {muteVideo ? "Unmute" : "Mute"} Video
           </Button>
         </Col>
-        {members.map((member, id) => {
+        {Object.keys(members).map((member) => {
           return (
-            <Col sm={3} xs={12} key={`col-${id + 1}`}>
+            <Col sm={3} xs={12} key={`col-${member}`}>
               <b>{member.displayName}</b>
               <br />
               {member.video ? (
@@ -338,7 +333,7 @@ function App() {
                   className="col-sm-12"
                   ref={(ref) => ref && member.video.attach(ref)}
                   autoPlay="1"
-                  key={`video-track-${id}`}
+                  key={`video-track-${member}`}
                 />
               ) : (
                 "No video track received"
@@ -347,7 +342,7 @@ function App() {
                 <audio
                   ref={(ref) => ref && member.audio.attach(ref)}
                   autoPlay="1"
-                  key={`audio-track-${id}`}
+                  key={`audio-track-${member}`}
                 />
               )}
             </Col>
