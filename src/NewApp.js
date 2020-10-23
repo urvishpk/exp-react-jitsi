@@ -93,7 +93,7 @@ function App() {
     setupErrorHandlers(JitsiMeetJS);
     setMsgs([`Joining conference room ${ROOM_NAME}`]);
     conferenceRoom.current.setDisplayName(DISPLAY_NAME);
-    // conferenceRoom.current.setStartMutedPolicy({ audio: true, video: false });
+    conferenceRoom.current.setStartMutedPolicy({ audio: true, video: false });
     conferenceRoom.current.join();
   }
   function setupJitsiConference() {
@@ -130,6 +130,7 @@ function App() {
   }
   function handleUserJoined(participantId) {
     console.log(`User joined ${participantId}`);
+    console.log(remoteTracks);
     setRemoteTracks((prevRemoteTracks) => {
       return {
         ...prevRemoteTracks,
@@ -181,7 +182,6 @@ function App() {
   }
   function handleTrackAdded(track) {
     console.log(`Track added - ${track}`);
-    console.log("[TRACK ADDED]", track);
     if (track.isLocal()) return;
     if (track.getType() === "video") addVideoTrack(track);
     if (track.getType() === "audio") addAudioTrack(track);
@@ -299,7 +299,6 @@ function App() {
     if (localTracks.length === 0) return;
     const oldVideoTrack = conferenceRoom.current.getLocalVideoTrack();
     for (let i = 0; i < localTracks.length; i++) {
-      console.log("[TYPE]", localTracks[i].getType());
       if (localTracks[i].getType() === "video") {
         localTracks[i].attach(videoElement.current);
         if (oldVideoTrack) {
@@ -310,8 +309,6 @@ function App() {
               setShowDesktop(localTracks[i].videoType === "desktop");
             });
         } else {
-          localTracks[i].mute();
-          setMuteAudio(true);
           conferenceRoom.current.addTrack(localTracks[i]);
         }
       } else {
