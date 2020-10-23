@@ -93,7 +93,7 @@ function App() {
     setupErrorHandlers(JitsiMeetJS);
     setMsgs([`Joining conference room ${ROOM_NAME}`]);
     conferenceRoom.current.setDisplayName(DISPLAY_NAME);
-    conferenceRoom.current.setStartMutedPolicy({ audio: true, video: true });
+    conferenceRoom.current.setStartMutedPolicy({ audio: true, video: false });
     conferenceRoom.current.join();
   }
   function setupJitsiConference() {
