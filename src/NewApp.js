@@ -109,6 +109,10 @@ function App() {
       handleUserJoined
     );
     conferenceRoom.current.on(
+      JitsiMeetJS.events.conference.USER_LEFT,
+      handleUserLeft
+    );
+    conferenceRoom.current.on(
       JitsiMeetJS.events.conference.TRACK_ADDED,
       handleTrackAdded
     );
@@ -145,6 +149,11 @@ function App() {
     };
     setMembers((prev) => [...prev, member]);
   }
+  function handleUserLeft(memberId) {
+    const updatedMembers = members.filter((member) => member.id !== memberId);
+    setMembers(updatedMembers);
+  }
+
   function handleTrackAdded(track) {
     console.log(track);
     if (track.isLocal()) return;
