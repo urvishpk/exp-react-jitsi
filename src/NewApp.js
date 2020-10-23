@@ -93,6 +93,7 @@ function App() {
     setupErrorHandlers(JitsiMeetJS);
     setMsgs([`Joining conference room ${ROOM_NAME}`]);
     conferenceRoom.current.setDisplayName(DISPLAY_NAME);
+    conferenceRoom.current.setStartMutedPolicy({ audio: true, video: true });
     conferenceRoom.current.join();
   }
   function setupJitsiConference() {
@@ -180,6 +181,7 @@ function App() {
   }
   function handleTrackAdded(track) {
     console.log(`Track added - ${track}`);
+    console.log("[TRACK ADDED]", track);
     if (track.isLocal()) return;
     if (track.getType() === "video") addVideoTrack(track);
     if (track.getType() === "audio") addAudioTrack(track);
