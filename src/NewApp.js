@@ -134,18 +134,22 @@ function App() {
     for (let i = 0; i < localTracks.length; i++) {
       conferenceRoom.current.addTrack(localTracks[i]);
     }
+    console.log("[CONF TRACKS]", conferenceRoom.current.getLocalTracks());
   }, [localTracks]);
   function handleUserJoined(memberId) {
     console.log(memberId);
+    console.log("[CONF TRACKS]", conferenceRoom.current.getLocalTracks());
     const member = {
       audio: null,
       video: null,
       displayName: conferenceRoom.current.getParticipantById(memberId)
         ._displayName,
     };
+    console.log("[MEMBER]", member);
     setMembers((prev) => ({ ...prev, [memberId]: member }));
   }
   function handleUserLeft(memberId) {
+    console.log("[CONF TRACKS]", conferenceRoom.current.getLocalTracks());
     setMembers((prev) => {
       delete prev[memberId];
       return { ...prev };
@@ -159,6 +163,7 @@ function App() {
     const currentMembers = members;
     for (let i = 0; i < remoteTracks.length; i++) {
       const memberId = remoteTracks[i].getParticipantId();
+      if (!currentMembers[memberId]) return;
       if (remoteTracks[i].getType() === "audio")
         currentMembers[memberId].audio = remoteTracks[i];
       else currentMembers[memberId].video = remoteTracks[i];
@@ -319,27 +324,27 @@ function App() {
             {muteVideo ? "Unmute" : "Mute"} Video
           </Button>
         </Col>
-        {Object.keys(members).map((member) => {
+        {Object.keys(members).map((id) => {
           return (
-            <Col sm={3} xs={12} key={`col-${member}`}>
-              <b>{member.displayName}</b>
+            <Col sm={3} xs={12} key={`col-${id}`}>
+              <b>{members[id].displayName}</b>
               <br />
-              {member.video ? (
+              {id.video ? (
                 <video
                   style={{ paddingLeft: 0, paddingRight: 0 }}
                   className="col-sm-12"
-                  ref={(ref) => ref && member.video.attach(ref)}
+                  ref={(ref) => ref && members[id].video.attach(ref)}
                   autoPlay="1"
-                  key={`video-track-${member}`}
+                  key={`video-track-${id}`}
                 />
               ) : (
                 "No video track received"
               )}
-              {member.audio && (
+              {id.audio && (
                 <audio
-                  ref={(ref) => ref && member.audio.attach(ref)}
+                  ref={(ref) => ref && members[id].audio.attach(ref)}
                   autoPlay="1"
-                  key={`audio-track-${member}`}
+                  key={`audio-track-${id}`}
                 />
               )}
             </Col>
