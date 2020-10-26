@@ -25,6 +25,8 @@ function App() {
   const connection = useRef(null);
   const conferenceRoom = useRef(null);
 
+  let temp;
+
   useEffect(() => {
     if (!window.JitsiMeetJS) {
       setError(
@@ -136,11 +138,10 @@ function App() {
         console.log(err);
       });
   }
-  function handleUserJoined(memberId, user) {
-    console.log(memberId);
-    console.log(user);
+  function handleUserJoined(memberId) {
+    if (members[memberId]) return;
     const member = {
-      audio: user._tracks[0],
+      audio: null,
       video: null,
       displayName: conferenceRoom.current.getParticipantById(memberId)
         ._displayName,
@@ -159,7 +160,15 @@ function App() {
     const updatedMembers = members;
     if (track.isLocal()) return;
     const id = track.getParticipantId();
-    if (!updatedMembers[id]) return;
+    if (!updatedMembers[id]) {
+      const member = {
+        audio: track,
+        video: null,
+        displayName: conferenceRoom.current.getParticipantById(id)._displayName,
+      };
+      setMembers((prev) => ({ ...prev, [id]: member }));
+      return;
+    }
     updatedMembers[id].audio = track;
     setMembers(updatedMembers);
   }
