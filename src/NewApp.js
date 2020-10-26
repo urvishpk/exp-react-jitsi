@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef } from "react";
 import $ from "jquery";
@@ -12,8 +13,6 @@ window.$ = $;
 function App() {
   const [error, setError] = useState(null);
   const [msgs, setMsgs] = useState([]);
-  const [localTracks, setLocalTracks] = useState([]);
-  const [remoteTracks, setRemoteTracks] = useState([]);
   const [members, setMembers] = useState({});
 
   // eslint-disable-next-line no-unused-vars
@@ -127,19 +126,16 @@ function App() {
       .then((tracks) => {
         console.log("[LOCAL TRACKS CREATED]", tracks);
         setPermissionDenied(false);
-        setLocalTracks(tracks);
+        if (tracks.length === 0) return;
+        for (let i = 0; i < tracks.length; i++) {
+          console.log("[LOCAL TRACK ADDED TO THE CONFERENCE]", tracks[i]);
+          conferenceRoom.current.addTrack(tracks[i]);
+        }
       })
       .catch((err) => {
         console.log(err);
       });
   }
-  useEffect(() => {
-    if (localTracks.length === 0) return;
-    for (let i = 0; i < localTracks.length; i++) {
-      console.log("[LOCAL TRACK ADDED TO THE CONFERENCE]", localTracks[i]);
-      conferenceRoom.current.addTrack(localTracks[i]);
-    }
-  }, [localTracks]);
   function handleUserJoined(memberId) {
     console.log(memberId);
     const member = {
@@ -159,23 +155,24 @@ function App() {
     });
   }
   function handleTrackAdded(track) {
+    const updatedMembers = members;
     if (track.isLocal()) return;
-    setRemoteTracks((prev) => [...prev, track]);
-    console.log("[REMOTE TRACK ADDED]", track);
+    const id = track.getParticipantId();
+    if (!updatedMembers[id]) return;
+    updatedMembers[id].audio = track;
+    setMembers(updatedMembers);
   }
-  useEffect(() => {
-    if (remoteTracks === 0) return;
-    const currentMembers = members;
-    for (let i = 0; i < remoteTracks.length; i++) {
-      const memberId = remoteTracks[i].getParticipantId();
-      if (!currentMembers[memberId]) return;
-      if (remoteTracks[i].getType() === "audio") {
-        console.log("[REMOTE TRACK UPDATED IN MEMBER OBJECT]", remoteTracks[i]);
-        currentMembers[memberId].audio = remoteTracks[i];
-      } else currentMembers[memberId].video = remoteTracks[i];
-    }
-    setMembers(currentMembers);
-  }, [remoteTracks]);
+  // useEffect(() => {
+  //   const currentMembers = members;
+  //   for (let i = 0; i < remoteTracks.length; i++) {
+  //     const memberId = remoteTracks[i].getParticipantId();
+  //     if (!currentMembers[memberId]) return;
+  //     if (remoteTracks[i].getType() === "audio")
+  //       currentMembers[memberId].audio = remoteTracks[i];
+  //     else currentMembers[memberId].video = remoteTracks[i];
+  //   }
+  //   setMembers(currentMembers);
+  // }, [remoteTracks]);
 
   function setupErrorHandlers(JitsiMeetJS) {
     conferenceRoom.current.on(
@@ -261,25 +258,6 @@ function App() {
   function addMsg(msg) {
     setMsgs((prevMsgs) => [...prevMsgs, msg]);
   }
-  function toggleAudio() {
-    const tracks = localTracks;
-    tracks.forEach((track) => {
-      if (track.getType() === "audio") {
-        muteAudio ? track.unmute() : track.mute();
-        setMuteAudio((prev) => !prev);
-      }
-    });
-    setLocalTracks(tracks);
-  }
-  function toggleVideo() {
-    const tracks = localTracks;
-    tracks.forEach((track) => {
-      if (track.getType() === "video") {
-        muteVideo ? track.unmute() : track.mute();
-        setMuteVideo((prev) => !prev);
-      }
-    });
-  }
   return (
     <Container>
       <h2>Jitsi Custom UI with React and lib-jitsi-meet</h2>
@@ -321,12 +299,12 @@ function App() {
           </Button>
           <br />
           <br />
-          <Button onClick={toggleAudio}>
+          <Button onClick={() => {}}>
             {muteAudio ? "Unmute" : "Mute"} Audio
           </Button>
           <br />
           <br />
-          <Button onClick={toggleVideo}>
+          <Button onClick={() => {}}>
             {muteVideo ? "Unmute" : "Mute"} Video
           </Button>
         </Col>
