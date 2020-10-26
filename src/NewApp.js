@@ -120,7 +120,7 @@ function App() {
   function handleConferenceJoined() {
     setMsgs([`Joined conference room ${ROOM_NAME}`]);
     const { JitsiMeetJS } = window;
-    JitsiMeetJS.createLocalTracks({ devices: ["audio", "video"] })
+    JitsiMeetJS.createLocalTracks({ devices: ["audio"] })
       .then((tracks) => {
         setPermissionDenied(false);
         setLocalTracks(tracks);
@@ -132,9 +132,6 @@ function App() {
   useEffect(() => {
     if (localTracks.length === 0) return;
     for (let i = 0; i < localTracks.length; i++) {
-      if (localTracks[i].getType() !== "audio") {
-        localTracks[i].attach(videoElement.current);
-      }
       conferenceRoom.current.addTrack(localTracks[i]);
     }
   }, [localTracks]);
