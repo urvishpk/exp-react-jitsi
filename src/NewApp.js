@@ -45,6 +45,7 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   function initializeJitsiMeetJS() {
+    console.log("[INITIALIZING JITSI]");
     const { JitsiMeetJS, config } = window;
     let serviceUrl = config.websocket || config.bosh;
     serviceUrl += `?room=${ROOM_NAME}`;
@@ -58,6 +59,7 @@ function App() {
     return { JitsiMeetJS, config };
   }
   function initializeConnection(JitsiMeetJS, config) {
+    console.log("[INITIALIZING CONNECTION]");
     connection.current = new JitsiMeetJS.JitsiConnection(null, null, config);
     setupConnectionListeners(JitsiMeetJS);
     addMsg("Connecting to video conference server...");
@@ -118,10 +120,12 @@ function App() {
     );
   }
   function handleConferenceJoined() {
+    console.log("[CONFERENCE JOINED]");
     setMsgs([`Joined conference room ${ROOM_NAME}`]);
     const { JitsiMeetJS } = window;
     JitsiMeetJS.createLocalTracks({ devices: ["audio"] })
       .then((tracks) => {
+        console.log("[LOCAL TRACKS CREATED]", tracks);
         setPermissionDenied(false);
         setLocalTracks(tracks);
       })
@@ -132,24 +136,23 @@ function App() {
   useEffect(() => {
     if (localTracks.length === 0) return;
     for (let i = 0; i < localTracks.length; i++) {
+      console.log("[LOCAL TRACK ADDED TO THE CONFERENCE]", localTracks[i]);
       conferenceRoom.current.addTrack(localTracks[i]);
     }
-    console.log("[CONF TRACKS]", conferenceRoom.current.getLocalTracks());
   }, [localTracks]);
   function handleUserJoined(memberId) {
     console.log(memberId);
-    console.log("[CONF TRACKS]", conferenceRoom.current.getLocalTracks());
     const member = {
       audio: null,
       video: null,
       displayName: conferenceRoom.current.getParticipantById(memberId)
         ._displayName,
     };
-    console.log("[MEMBER]", member);
+    console.log("[MEMBER JOINED]", member);
     setMembers((prev) => ({ ...prev, [memberId]: member }));
   }
   function handleUserLeft(memberId) {
-    console.log("[CONF TRACKS]", conferenceRoom.current.getLocalTracks());
+    console.log("[MEMBER LEFT]", members[memberId]);
     setMembers((prev) => {
       delete prev[memberId];
       return { ...prev };
@@ -158,15 +161,18 @@ function App() {
   function handleTrackAdded(track) {
     if (track.isLocal()) return;
     setRemoteTracks((prev) => [...prev, track]);
+    console.log("[REMOTE TRACK ADDED]", track);
   }
   useEffect(() => {
+    if (remoteTracks === 0) return;
     const currentMembers = members;
     for (let i = 0; i < remoteTracks.length; i++) {
       const memberId = remoteTracks[i].getParticipantId();
       if (!currentMembers[memberId]) return;
-      if (remoteTracks[i].getType() === "audio")
+      if (remoteTracks[i].getType() === "audio") {
+        console.log("[REMOTE TRACK UPDATED IN MEMBER OBJECT]", remoteTracks[i]);
         currentMembers[memberId].audio = remoteTracks[i];
-      else currentMembers[memberId].video = remoteTracks[i];
+      } else currentMembers[memberId].video = remoteTracks[i];
     }
     setMembers(currentMembers);
   }, [remoteTracks]);
