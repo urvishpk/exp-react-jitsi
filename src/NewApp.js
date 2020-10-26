@@ -136,10 +136,11 @@ function App() {
         console.log(err);
       });
   }
-  function handleUserJoined(memberId) {
+  function handleUserJoined(memberId, user) {
     console.log(memberId);
+    console.log(user);
     const member = {
-      audio: null,
+      audio: user._tracks[0],
       video: null,
       displayName: conferenceRoom.current.getParticipantById(memberId)
         ._displayName,
