@@ -335,7 +335,7 @@ function App() {
             <Col sm={3} xs={12} key={`col-${id}`}>
               <b>{members[id].displayName}</b>
               <br />
-              {id.video ? (
+              {members[id].video ? (
                 <video
                   style={{ paddingLeft: 0, paddingRight: 0 }}
                   className="col-sm-12"
@@ -346,7 +346,7 @@ function App() {
               ) : (
                 "No video track received"
               )}
-              {id.audio && (
+              {members[id].audio && (
                 <audio
                   ref={(ref) => ref && members[id].audio.attach(ref)}
                   autoPlay="1"
