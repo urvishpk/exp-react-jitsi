@@ -149,35 +149,39 @@ function App() {
   }
   function handleTrackAdded(track) {
     if (track.isLocal()) return;
+    console.log("[STEP 1]Track Added", track);
     setRemoteTracks((prev) => [...prev, track]);
   }
   useEffect(() => {
+    console.log("[STEP 2]Processing Tracks", remoteTracks);
     for (let i = 0; i < remoteTracks.length; i++) {
+      console.log("[REMOTE TRACKS LENGTH]", remoteTracks.length);
       const track = remoteTracks[i];
+      console.log("[TRACK TYPE]", track.getType());
       const id = track.getParticipantId();
       if (members[id]) {
+        console.log("[STEP 3]Updating Member");
         if (track.getType() === "audio") updateMember(id, track);
         else updateMember(id, null, track);
-        return;
       }
-      const displayName = conferenceRoom.current.getParticipantById(id)
-        ._displayName;
-      if (track.getType() === "audio")
-        createAndAddMember(id, displayName, track);
-      else createAndAddMember(id, displayName, null, track);
     }
   }, [remoteTracks]);
-
   function createAndAddMember(id, displayName, audio = null, video = null) {
     const member = { displayName, audio, video };
     setMembers((prev) => ({ ...prev, [id]: member }));
   }
   function updateMember(id, audio = null, video = null) {
     const updatedMembers = members;
+    console.log("[STEP 4.1]Updated Members", updatedMembers);
     if (audio) updatedMembers[id].audio = audio;
     if (video) updatedMembers[id].video = video;
+    console.log("[STEP 4.2]Updated Members", updatedMembers);
     setMembers(updatedMembers);
   }
+  useEffect(() => {
+    const m = members;
+    console.log("[STEP 5]Members", m);
+  }, [members]);
   function setupErrorHandlers(JitsiMeetJS) {
     conferenceRoom.current.on(
       JitsiMeetJS.events.conference.CONNECTION_ERROR,
@@ -329,6 +333,7 @@ function App() {
           </Button>
         </Col>
         {Object.keys(members).map((id) => {
+          console.log("[RENDER]", members[id]);
           return (
             <Col sm={3} xs={12} key={`col-${id}`}>
               <b>{members[id].displayName}</b>
