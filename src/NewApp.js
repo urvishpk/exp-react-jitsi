@@ -174,11 +174,30 @@ function App() {
   function updateMember(id, audio = null, video = null) {
     const updatedMembers = members;
     console.log("[STEP 4.1]Updated Members", updatedMembers);
-    if (audio) updatedMembers[id].audio = audio;
-    if (video) updatedMembers[id].video = video;
+    if (audio) {
+      updatedMembers[id].audio = audio;
+    }
+    if (video) {
+      updatedMembers[id].video = video;
+    }
     console.log("[STEP 4.2]Updated Members", updatedMembers);
     setMembers(updatedMembers);
   }
+  useEffect(() => {
+    Object.keys(members).forEach((id) => {
+      if (members[id].audio) {
+        if (members[id].audio.containers.length === 0) {
+          members[id].audio.attach(document.getElementById(`audio-${id}`));
+        }
+      }
+      if (members[id].video) {
+        if (members[id].video.containers.length === 0) {
+          members[id].video.attach(document.getElementById(`video-${id}`));
+        }
+      }
+    });
+  });
+
   function setupErrorHandlers(JitsiMeetJS) {
     conferenceRoom.current.on(
       JitsiMeetJS.events.conference.CONNECTION_ERROR,
@@ -335,24 +354,18 @@ function App() {
             <Col sm={3} xs={12} key={`col-${id}`}>
               <b>{members[id].displayName}</b>
               <br />
-              {members[id].audio && (
-                <audio
-                  ref={(ref) => ref && members[id].audio.attach(ref)}
-                  autoPlay="1"
-                  key={`audio-track-${id}`}
-                />
-              )}
-              {members[id].video ? (
-                <video
-                  style={{ paddingLeft: 0, paddingRight: 0 }}
-                  className="col-sm-12"
-                  ref={(ref) => ref && members[id].video.attach(ref)}
-                  autoPlay="1"
-                  key={`video-track-${id}`}
-                />
-              ) : (
-                "No video track received"
-              )}
+              <audio
+                id={`audio-${id}`}
+                autoPlay="1"
+                key={`audio-track-${id}`}
+              />
+              <video
+                id={`video-${id}`}
+                style={{ paddingLeft: 0, paddingRight: 0 }}
+                className="col-sm-12"
+                autoPlay="1"
+                key={`video-track-${id}`}
+              />
             </Col>
           );
         })}
