@@ -150,52 +150,43 @@ function App() {
   }
   function handleTrackAdded(track) {
     if (track.isLocal()) return;
-    console.log("[STEP 1]Track Added", track);
     setRemoteTracks((prev) => [...prev, track]);
   }
   useEffect(() => {
-    console.log("[STEP 2]Processing Tracks", remoteTracks);
     for (let i = 0; i < remoteTracks.length; i++) {
-      console.log("[REMOTE TRACKS LENGTH]", remoteTracks.length);
       const track = remoteTracks[i];
-      console.log("[TRACK TYPE]", track.getType());
       const id = track.getParticipantId();
       if (members[id]) {
-        console.log("[STEP 3]Updating Member");
         if (track.getType() === "audio") updateMember(id, track);
         else updateMember(id, null, track);
       }
     }
   }, [remoteTracks]);
-  function createAndAddMember(id, displayName, audio = null, video = null) {
+  function createAndAddMember(id, displayName) {
     const member = { displayName };
     setMembers((prev) => ({ ...prev, [id]: member }));
   }
   function updateMember(id, audio = null, video = null) {
     const updatedMembers = members;
-    console.log("[STEP 4.1]Updated Members", updatedMembers);
-    if (audio) {
-      updatedMembers[id].audio = audio;
-    }
-    if (video) {
-      updatedMembers[id].video = video;
-    }
-    console.log("[STEP 4.2]Updated Members", updatedMembers);
+    if (audio) updatedMembers[id].audio = audio;
+    if (video) updatedMembers[id].video = video;
     setMembers(updatedMembers);
   }
   useEffect(() => {
-    Object.keys(members).forEach((id) => {
-      if (members[id].audio) {
-        if (members[id].audio.containers.length === 0) {
-          members[id].audio.attach(document.getElementById(`audio-${id}`));
-        }
-      }
-      if (members[id].video) {
-        if (members[id].video.containers.length === 0) {
-          members[id].video.attach(document.getElementById(`video-${id}`));
-        }
-      }
+    const updatedMembers = members;
+    Object.keys(updatedMembers).forEach((id) => {
+      if (
+        updatedMembers[id].audio &&
+        updatedMembers[id].audio.containers.length === 0
+      )
+        updatedMembers[id].audio.attach(document.getElementById(`audio-${id}`));
+      if (
+        updatedMembers[id].video &&
+        updatedMembers[id].video.containers.length === 0
+      )
+        updatedMembers[id].video.attach(document.getElementById(`video-${id}`));
     });
+    setMembers(updatedMembers);
   });
 
   function setupErrorHandlers(JitsiMeetJS) {
