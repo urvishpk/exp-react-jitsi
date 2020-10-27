@@ -167,7 +167,7 @@ function App() {
     }
   }, [remoteTracks]);
   function createAndAddMember(id, displayName, audio = null, video = null) {
-    const member = { displayName, audio, video };
+    const member = { displayName };
     setMembers((prev) => ({ ...prev, [id]: member }));
   }
   function updateMember(id, audio = null, video = null) {
