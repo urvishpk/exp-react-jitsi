@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import $ from "jquery";
 import { Container, Row, Col, Button, Alert } from "reactstrap";
 
-const ROOM_NAME = "somerandomroomname";
+const ROOM_NAME = "somerandomroomname404";
 const DISPLAY_NAME = "Participant - " + Math.floor(Date.now() / 1000);
 
 // Lib-jitsi-meet requires jquery as global object
