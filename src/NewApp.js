@@ -177,12 +177,14 @@ function App() {
     Object.keys(updatedMembers).forEach((id) => {
       if (
         updatedMembers[id].audio &&
-        updatedMembers[id].audio.containers.length === 0
+        updatedMembers[id].audio.containers.length === 0 &&
+        document.getElementById(`audio-${id}`)
       )
         updatedMembers[id].audio.attach(document.getElementById(`audio-${id}`));
       if (
         updatedMembers[id].video &&
-        updatedMembers[id].video.containers.length === 0
+        updatedMembers[id].video.containers.length === 0 &&
+        document.getElementById(`video-${id}`)
       )
         updatedMembers[id].video.attach(document.getElementById(`video-${id}`));
     });
