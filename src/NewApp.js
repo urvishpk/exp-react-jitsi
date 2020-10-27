@@ -1,5 +1,3 @@
-/* eslint-disable no-unused-vars */
-/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef } from "react";
 import $ from "jquery";
 import { Container, Row, Col, Button, Alert } from "reactstrap";
@@ -15,17 +13,13 @@ function App() {
   const [msgs, setMsgs] = useState([]);
   const [members, setMembers] = useState({});
 
-  // eslint-disable-next-line no-unused-vars
-  const [showDesktop, setShowDesktop] = useState(null);
   const [permissionDenied, setPermissionDenied] = useState(null);
-  const [muteAudio, setMuteAudio] = useState(false);
-  const [muteVideo, setMuteVideo] = useState(false);
+  const [isAudioMuted, setIsAudioMuted] = useState(false);
+  const [isVideoMuted, setIsVideoMuted] = useState(false);
   const videoElement = useRef(null);
 
   const connection = useRef(null);
   const conferenceRoom = useRef(null);
-
-  let temp;
 
   useEffect(() => {
     if (!window.JitsiMeetJS) {
@@ -46,7 +40,6 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   function initializeJitsiMeetJS() {
-    console.log("[INITIALIZING JITSI]");
     const { JitsiMeetJS, config } = window;
     let serviceUrl = config.websocket || config.bosh;
     serviceUrl += `?room=${ROOM_NAME}`;
@@ -60,7 +53,6 @@ function App() {
     return { JitsiMeetJS, config };
   }
   function initializeConnection(JitsiMeetJS, config) {
-    console.log("[INITIALIZING CONNECTION]");
     connection.current = new JitsiMeetJS.JitsiConnection(null, null, config);
     setupConnectionListeners(JitsiMeetJS);
     addMsg("Connecting to video conference server...");
@@ -120,70 +112,63 @@ function App() {
       handleTrackAdded
     );
   }
-  function handleConferenceJoined() {
-    console.log("[CONFERENCE JOINED]");
+  async function handleConferenceJoined() {
     setMsgs([`Joined conference room ${ROOM_NAME}`]);
     const { JitsiMeetJS } = window;
-    JitsiMeetJS.createLocalTracks({ devices: ["audio"] })
-      .then((tracks) => {
-        console.log("[LOCAL TRACKS CREATED]", tracks);
-        setPermissionDenied(false);
-        if (tracks.length === 0) return;
-        for (let i = 0; i < tracks.length; i++) {
-          console.log("[LOCAL TRACK ADDED TO THE CONFERENCE]", tracks[i]);
-          conferenceRoom.current.addTrack(tracks[i]);
-        }
-      })
-      .catch((err) => {
-        console.log(err);
+    try {
+      const tracks = await JitsiMeetJS.createLocalTracks({
+        devices: ["audio", "video"],
       });
+      setPermissionDenied(false);
+      if (tracks.length === 0) return;
+      for (let i = 0; i < tracks.length; i++) {
+        if (tracks[i].getType() === "video")
+          tracks[i].attach(videoElement.current);
+        conferenceRoom.current.addTrack(tracks[i]);
+      }
+    } catch (err) {
+      console.log(err);
+    }
   }
   function handleUserJoined(memberId) {
     if (members[memberId]) return;
-    const member = {
-      audio: null,
-      video: null,
-      displayName: conferenceRoom.current.getParticipantById(memberId)
-        ._displayName,
-    };
-    console.log("[MEMBER JOINED]", member);
-    setMembers((prev) => ({ ...prev, [memberId]: member }));
+    const displayName = conferenceRoom.current.getParticipantById(memberId)
+      ._displayName;
+    createAndAddMember(memberId, displayName);
   }
   function handleUserLeft(memberId) {
-    console.log("[MEMBER LEFT]", members[memberId]);
+    removeMember(memberId);
+  }
+  function removeMember(id) {
     setMembers((prev) => {
-      delete prev[memberId];
+      delete prev[id];
       return { ...prev };
     });
   }
   function handleTrackAdded(track) {
-    const updatedMembers = members;
     if (track.isLocal()) return;
     const id = track.getParticipantId();
-    if (!updatedMembers[id]) {
-      const member = {
-        audio: track,
-        video: null,
-        displayName: conferenceRoom.current.getParticipantById(id)._displayName,
-      };
-      setMembers((prev) => ({ ...prev, [id]: member }));
+    if (members[id]) {
+      if (track.getType() === "audio") updateMember(id, track);
+      else updateMember(id, null, track);
       return;
     }
-    updatedMembers[id].audio = track;
+    const displayName = conferenceRoom.current.getParticipantById(id)
+      ._displayName;
+    if (track.getType() === "audio") createAndAddMember(id, displayName, track);
+    else createAndAddMember(id, displayName, null, track);
+    return;
+  }
+  function createAndAddMember(id, displayName, audio = null, video = null) {
+    const member = { displayName, audio, video };
+    setMembers((prev) => ({ ...prev, [id]: member }));
+  }
+  function updateMember(id, audio = null, video = null) {
+    const updatedMembers = members;
+    if (audio) updatedMembers[id].audio = audio;
+    if (video) updatedMembers[id].video = video;
     setMembers(updatedMembers);
   }
-  // useEffect(() => {
-  //   const currentMembers = members;
-  //   for (let i = 0; i < remoteTracks.length; i++) {
-  //     const memberId = remoteTracks[i].getParticipantId();
-  //     if (!currentMembers[memberId]) return;
-  //     if (remoteTracks[i].getType() === "audio")
-  //       currentMembers[memberId].audio = remoteTracks[i];
-  //     else currentMembers[memberId].video = remoteTracks[i];
-  //   }
-  //   setMembers(currentMembers);
-  // }, [remoteTracks]);
-
   function setupErrorHandlers(JitsiMeetJS) {
     conferenceRoom.current.on(
       JitsiMeetJS.events.conference.CONNECTION_ERROR,
@@ -265,8 +250,27 @@ function App() {
     addMsg("Disconnected");
   }
 
+  // UI interactions and updates
   function addMsg(msg) {
     setMsgs((prevMsgs) => [...prevMsgs, msg]);
+  }
+  function toggleAudio() {
+    const tracks = conferenceRoom.current.getLocalTracks();
+    tracks.forEach((track) => {
+      if (track.getType() === "audio") {
+        track.isMuted() ? track.unmute() : track.mute();
+        setIsAudioMuted(track.isMuted());
+      }
+    });
+  }
+  function toggleVideo() {
+    const tracks = conferenceRoom.current.getLocalTracks();
+    tracks.forEach((track) => {
+      if (track.getType() === "video") {
+        track.isMuted() ? track.unmute() : track.mute();
+        setIsVideoMuted(track.isMuted());
+      }
+    });
   }
   return (
     <Container>
@@ -277,7 +281,7 @@ function App() {
       })}
       <Row>
         <Col sm={3} xs={12}>
-          <b>My {showDesktop ? "Screen Share" : "Cam"}</b>
+          <b>My Cam</b>
           <br />
           {permissionDenied === null && (
             <small>
@@ -304,18 +308,15 @@ function App() {
             />
           ) : null}
           <br />
-          <Button onClick={() => {}}>
-            {showDesktop ? "Stop Sharing Desktop" : "Share Desktop"}
+          <br />
+          <br />
+          <Button onClick={toggleAudio}>
+            {isAudioMuted ? "Unmute" : "Mute"} Audio
           </Button>
           <br />
           <br />
-          <Button onClick={() => {}}>
-            {muteAudio ? "Unmute" : "Mute"} Audio
-          </Button>
-          <br />
-          <br />
-          <Button onClick={() => {}}>
-            {muteVideo ? "Unmute" : "Mute"} Video
+          <Button onClick={toggleVideo}>
+            {isVideoMuted ? "Unmute" : "Mute"} Video
           </Button>
         </Col>
         {Object.keys(members).map((id) => {
