@@ -120,6 +120,7 @@ function App() {
     try {
       const tracks = await JitsiMeetJS.createLocalTracks({
         devices: ["audio", "video"],
+        resolution: "vga",
       });
       setPermissionDenied(false);
       if (tracks.length === 0) return;
@@ -178,10 +179,6 @@ function App() {
     console.log("[STEP 4.2]Updated Members", updatedMembers);
     setMembers(updatedMembers);
   }
-  useEffect(() => {
-    const m = members;
-    console.log("[STEP 5]Members", m);
-  }, [members]);
   function setupErrorHandlers(JitsiMeetJS) {
     conferenceRoom.current.on(
       JitsiMeetJS.events.conference.CONNECTION_ERROR,
@@ -338,6 +335,13 @@ function App() {
             <Col sm={3} xs={12} key={`col-${id}`}>
               <b>{members[id].displayName}</b>
               <br />
+              {members[id].audio && (
+                <audio
+                  ref={(ref) => ref && members[id].audio.attach(ref)}
+                  autoPlay="1"
+                  key={`audio-track-${id}`}
+                />
+              )}
               {members[id].video ? (
                 <video
                   style={{ paddingLeft: 0, paddingRight: 0 }}
@@ -348,13 +352,6 @@ function App() {
                 />
               ) : (
                 "No video track received"
-              )}
-              {members[id].audio && (
-                <audio
-                  ref={(ref) => ref && members[id].audio.attach(ref)}
-                  autoPlay="1"
-                  key={`audio-track-${id}`}
-                />
               )}
             </Col>
           );
