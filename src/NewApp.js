@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef } from "react";
 import $ from "jquery";
 import { Container, Row, Col, Button, Alert } from "reactstrap";
@@ -12,6 +13,7 @@ function App() {
   const [error, setError] = useState(null);
   const [msgs, setMsgs] = useState([]);
   const [members, setMembers] = useState({});
+  const [remoteTracks, setRemoteTracks] = useState([]);
 
   const [permissionDenied, setPermissionDenied] = useState(null);
   const [isAudioMuted, setIsAudioMuted] = useState(false);
@@ -147,18 +149,25 @@ function App() {
   }
   function handleTrackAdded(track) {
     if (track.isLocal()) return;
-    const id = track.getParticipantId();
-    if (members[id]) {
-      if (track.getType() === "audio") updateMember(id, track);
-      else updateMember(id, null, track);
-      return;
-    }
-    const displayName = conferenceRoom.current.getParticipantById(id)
-      ._displayName;
-    if (track.getType() === "audio") createAndAddMember(id, displayName, track);
-    else createAndAddMember(id, displayName, null, track);
-    return;
+    setRemoteTracks((prev) => [...prev, track]);
   }
+  useEffect(() => {
+    for (let i = 0; i < remoteTracks.length; i++) {
+      const track = remoteTracks[i];
+      const id = track.getParticipantId();
+      if (members[id]) {
+        if (track.getType() === "audio") updateMember(id, track);
+        else updateMember(id, null, track);
+        return;
+      }
+      const displayName = conferenceRoom.current.getParticipantById(id)
+        ._displayName;
+      if (track.getType() === "audio")
+        createAndAddMember(id, displayName, track);
+      else createAndAddMember(id, displayName, null, track);
+    }
+  }, [remoteTracks]);
+
   function createAndAddMember(id, displayName, audio = null, video = null) {
     const member = { displayName, audio, video };
     setMembers((prev) => ({ ...prev, [id]: member }));
@@ -267,8 +276,8 @@ function App() {
     const tracks = conferenceRoom.current.getLocalTracks();
     tracks.forEach((track) => {
       if (track.getType() === "video") {
+        setIsVideoMuted(!track.isMuted());
         track.isMuted() ? track.unmute() : track.mute();
-        setIsVideoMuted(track.isMuted());
       }
     });
   }
