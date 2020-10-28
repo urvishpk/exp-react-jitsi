@@ -140,6 +140,10 @@ function App() {
     // createAndAddMember(memberId, displayName);
   }
   function handleUserLeft(memberId) {
+    let tracks = remoteTracks.filter((t) => t.getParticipantId() !== memberId);
+    setRemoteTracks(tracks);
+
+    document.getElementById(`member-${memberId}`).remove();
     // removeMember(memberId);
   }
   // function removeMember(id) {
