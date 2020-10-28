@@ -189,7 +189,7 @@ function App() {
         updatedMembers[id].video.attach(document.getElementById(`video-${id}`));
     });
     setMembers(updatedMembers);
-  });
+  }, []);
 
   function setupErrorHandlers(JitsiMeetJS) {
     conferenceRoom.current.on(
