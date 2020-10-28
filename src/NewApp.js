@@ -113,6 +113,10 @@ function App() {
       JitsiMeetJS.events.conference.TRACK_ADDED,
       handleTrackAdded
     );
+    conferenceRoom.current.on(
+      JitsiMeetJS.events.conference.TRACK_REMOVED,
+      handleTrackRemoved
+    );
   }
   async function handleConferenceJoined() {
     setMsgs([`Joined conference room ${ROOM_NAME}`]);
@@ -140,8 +144,13 @@ function App() {
     // createAndAddMember(memberId, displayName);
   }
   function handleUserLeft(memberId) {
-    let tracks = remoteTracks.filter((t) => t.getParticipantId() !== memberId);
-    setRemoteTracks(tracks);
+    console.log("[TRACKS BEFORE REMOVING]", remoteTracks);
+    // let tracks = remoteTracks.filter((t) => {
+    //   console.log(t);
+    //   return t.getParticipantId() !== memberId;
+    // });
+    // console.log("[TRACKS AFTER REMOVING]", tracks);
+    // setRemoteTracks(tracks);
 
     document.getElementById(`member-${memberId}`).remove();
     // removeMember(memberId);
@@ -156,6 +165,13 @@ function App() {
     if (track.isLocal()) return;
     setRemoteTracks((prev) => [...prev, track]);
   }
+  function handleTrackRemoved(track) {
+    setRemoteTracks((prev) => {
+      const t = prev.filter((p) => p.getId() !== track.getId());
+      return t;
+    });
+  }
+
   useEffect(() => {
     console.log(remoteTracks);
     for (let i = 0; i < remoteTracks.length; i++) {
