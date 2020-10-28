@@ -12,7 +12,7 @@ window.$ = $;
 function App() {
   const [error, setError] = useState(null);
   const [msgs, setMsgs] = useState([]);
-  const [members, setMembers] = useState({});
+  // const [members, setMembers] = useState({});
   const [remoteTracks, setRemoteTracks] = useState([]);
 
   const [permissionDenied, setPermissionDenied] = useState(null);
@@ -134,62 +134,91 @@ function App() {
     }
   }
   function handleUserJoined(memberId) {
-    if (members[memberId]) return;
-    const displayName = conferenceRoom.current.getParticipantById(memberId)
-      ._displayName;
-    createAndAddMember(memberId, displayName);
+    // if (members[memberId]) return;
+    // const displayName = conferenceRoom.current.getParticipantById(memberId)
+    //   ._displayName;
+    // createAndAddMember(memberId, displayName);
   }
   function handleUserLeft(memberId) {
-    removeMember(memberId);
+    // removeMember(memberId);
   }
-  function removeMember(id) {
-    setMembers((prev) => {
-      delete prev[id];
-      return { ...prev };
-    });
-  }
+  // function removeMember(id) {
+  //   setMembers((prev) => {
+  //     delete prev[id];
+  //     return { ...prev };
+  //   });
+  // }
   function handleTrackAdded(track) {
     if (track.isLocal()) return;
     setRemoteTracks((prev) => [...prev, track]);
   }
   useEffect(() => {
+    console.log(remoteTracks);
     for (let i = 0; i < remoteTracks.length; i++) {
       const track = remoteTracks[i];
       const id = track.getParticipantId();
-      if (members[id]) {
-        if (track.getType() === "audio") updateMember(id, track);
-        else updateMember(id, null, track);
+      if (!document.getElementById(`member-${id}`)) {
+        const memberDiv = document.createElement("div");
+        memberDiv.setAttribute("id", `member-${id}`);
+        const name = document.createTextNode(id);
+        memberDiv.appendChild(name);
+        document.getElementById("members").appendChild(memberDiv);
       }
+      if (track.getType() === "audio") {
+        if (!document.getElementById(`audio-${id}`)) {
+          const audioElem = document.createElement("audio");
+          audioElem.setAttribute("id", `audio-${id}`);
+          audioElem.setAttribute("autoplay", "");
+          track.attach(audioElem);
+          document.getElementById(`member-${id}`).appendChild(audioElem);
+        }
+      } else {
+        if (!document.getElementById(`video-${id}`)) {
+          const videoElem = document.createElement("video");
+          videoElem.setAttribute("id", `video-${id}`);
+          videoElem.setAttribute("autoplay", "");
+          document
+            .getElementById(`member-${id}`)
+            .appendChild(document.createElement("br"));
+          document.getElementById(`member-${id}`).appendChild(videoElem);
+          track.attach(videoElem);
+        }
+      }
+
+      // if (members[id]) {
+      //   if (track.getType() === "audio") updateMember(id, track);
+      //   else updateMember(id, null, track);
+      // }
     }
   }, [remoteTracks]);
-  function createAndAddMember(id, displayName) {
-    const member = { displayName };
-    setMembers((prev) => ({ ...prev, [id]: member }));
-  }
-  function updateMember(id, audio = null, video = null) {
-    const updatedMembers = members;
-    if (audio) updatedMembers[id].audio = audio;
-    if (video) updatedMembers[id].video = video;
-    setMembers(updatedMembers);
-  }
-  useEffect(() => {
-    const updatedMembers = members;
-    Object.keys(updatedMembers).forEach((id) => {
-      if (
-        updatedMembers[id].audio &&
-        updatedMembers[id].audio.containers.length === 0 &&
-        document.getElementById(`audio-${id}`)
-      )
-        updatedMembers[id].audio.attach(document.getElementById(`audio-${id}`));
-      if (
-        updatedMembers[id].video &&
-        updatedMembers[id].video.containers.length === 0 &&
-        document.getElementById(`video-${id}`)
-      )
-        updatedMembers[id].video.attach(document.getElementById(`video-${id}`));
-    });
-    setMembers(updatedMembers);
-  }, []);
+  // function createAndAddMember(id, displayName) {
+  //   const member = { displayName };
+  //   setMembers((prev) => ({ ...prev, [id]: member }));
+  // }
+  // function updateMember(id, audio = null, video = null) {
+  //   const updatedMembers = members;
+  //   if (audio) updatedMembers[id].audio = audio;
+  //   if (video) updatedMembers[id].video = video;
+  //   setMembers(updatedMembers);
+  // }
+  // useEffect(() => {
+  //   const updatedMembers = members;
+  //   Object.keys(updatedMembers).forEach((id) => {
+  //     if (
+  //       updatedMembers[id].audio &&
+  //       updatedMembers[id].audio.containers.length === 0 &&
+  //       document.getElementById(`audio-${id}`)
+  //     )
+  //       updatedMembers[id].audio.attach(document.getElementById(`audio-${id}`));
+  //     if (
+  //       updatedMembers[id].video &&
+  //       updatedMembers[id].video.containers.length === 0 &&
+  //       document.getElementById(`video-${id}`)
+  //     )
+  //       updatedMembers[id].video.attach(document.getElementById(`video-${id}`));
+  //   });
+  //   setMembers(updatedMembers);
+  // }, []);
 
   function setupErrorHandlers(JitsiMeetJS) {
     conferenceRoom.current.on(
@@ -301,7 +330,7 @@ function App() {
       {msgs.map((msg) => {
         return <Alert color="info">{msg}</Alert>;
       })}
-      <Row>
+      <Row id="members">
         <Col sm={3} xs={12}>
           <b>My Cam</b>
           <br />
@@ -341,8 +370,8 @@ function App() {
             {isVideoMuted ? "Unmute" : "Mute"} Video
           </Button>
         </Col>
-        {Object.keys(members).map((id) => {
-          console.log("[RENDER]", members[id]);
+        {/* {Object.keys(members).map((id) => {
+          // console.log("[RENDER]", members[id]);
           return (
             <Col sm={3} xs={12} key={`col-${id}`}>
               <b>{members[id].displayName}</b>
@@ -361,7 +390,7 @@ function App() {
               />
             </Col>
           );
-        })}
+        })} */}
       </Row>
     </Container>
   );
