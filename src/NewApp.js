@@ -134,6 +134,22 @@ function App() {
         conferenceRoom.current.addTrack(tracks[i]);
       }
     } catch (err) {
+      if (err.name === "gum.not_found") {
+        try {
+          const tracks = await JitsiMeetJS.createLocalTracks({
+            devices: ["audio"],
+          });
+          setPermissionDenied(false);
+          if (tracks.length === 0) return;
+          for (let i = 0; i < tracks.length; i++) {
+            if (tracks[i].getType() === "video")
+              tracks[i].attach(videoElement.current);
+            conferenceRoom.current.addTrack(tracks[i]);
+          }
+        } catch (e) {
+          console.log(e);
+        }
+      }
       console.log(err);
     }
   }
